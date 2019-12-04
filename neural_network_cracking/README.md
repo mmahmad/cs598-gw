@@ -10,11 +10,20 @@
 
 `export PYTHONPATH=/home/$USER/scratch/cups:${PYTHONPATH}`
 
+# Local Setup
+
+`git clone https://github.com/cupslab/neural_network_cracking.git && cd neural_network_cracking`
+`virtualenv -p python3 cups-venv`
+`source cups-venv/bin/activate`
+`pip install -r requirements-cpu.txt`
+`pip install test-generator` (temporary until `requirements.txt` is updated in the original repository)
+
+
 ## train 2-gram model with no smoothing
 `python3 markov_model.py --train-file ../new_NEMO/NEMO/input/training.txt --ofile model.final --train-format list`
 
 ## train 6-gram model with additive smoothing
-`python3 markov_model.py --train-file ../new_NEMO/NEMO/input/training.txt --ofile model-6-gram.final --train-format list --k-order 6 --smoothing 'additive'`
+`python3 markov_model.py --train-file ../new_NEMO/NEMO/input/training.txt --ofile model-6-gram-additive.final --train-format list --k-order 6 --smoothing 'additive'`
 
 ## to guess (2-gram):
 `python3 markov_model.py --model-file model.final --k-order 2 --ofile markov_ofile.txt`
