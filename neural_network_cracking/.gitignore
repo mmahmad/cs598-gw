@@ -17,3 +17,5 @@ test_data
 *.final
 *ofile.txt
 guess_pwds.txt
+*venv*
+.vscode/
