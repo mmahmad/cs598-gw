@@ -293,7 +293,7 @@ def main(args):
             while len(context_chars) < 2:
                 context_chars += input("Enter context chars: ")
             
-            while len(context_chars) < 12 and context_chars[-1] != '$':
+            while len(context_chars) < 20:
                 # args.ofile = f'markov_ofile{i}.txt'
                 # guesser = make_guesser_builder(args)
                 # guess
@@ -314,10 +314,13 @@ def main(args):
                 #open(args.ofile, 'w').close()
                 #open(f'sorted_{args.ofile}', 'w').close()
 
-                # next input
-                context_chars += input("Enter next char: ")
-                # i += 1
-            # guesser.complete_guessing2()
+                next_context_chars = input("Enter next char (or $ to start again): ")
+                if next_context_chars == '$':
+                    while next_context_chars == '$':
+                        next_context_chars = input('Enter beginning context char(s): ')
+                        context_chars = next_context_chars
+                else:
+                    context_chars += next_context_chars
         else:
             guesser.calculate_probs()
     else:
