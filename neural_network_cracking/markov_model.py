@@ -8,6 +8,7 @@ import numpy as np
 import pwd_guess as pg
 import logging
 import subprocess
+import sys
 
 PASSWORD_START = '\t'
 
@@ -271,6 +272,11 @@ def make_guesser_builder(args):
     return guesser_builder.build()
 
 def main(args):
+    # TODO: Comment the 2 lines below for live prediction
+    test_markov_model(args)
+    sys.exit(0)
+
+    ###########################
     pg.init_logging(vars(args))
     if args.train_file is not None:
         train(args)
@@ -297,9 +303,11 @@ def main(args):
                 # args.ofile = f'markov_ofile{i}.txt'
                 # guesser = make_guesser_builder(args)
                 # guess
+                
                 guesser.ostream = open(args.ofile, 'w') # empty file
                 guesser.generated = 0
                 guesser.complete_guessing(context_chars)
+                    
                 # take args.ofile, sort it and return top 5 passwords
                 # sort: sort -gr -k2 -t$'\t' markov_ofile.txt -o sorted_markov_ofile.txt
                 # subprocess.run(["ls", "-l"])
@@ -321,6 +329,86 @@ def main(args):
                         context_chars = next_context_chars
                 else:
                     context_chars += next_context_chars
+        else:
+            guesser.calculate_probs()
+    else:
+        logging.error('Must provide --train-file or --model-file flag. ')
+
+def test_markov_model(args):
+    pg.init_logging(vars(args))
+    if args.train_file is not None:
+        train(args)
+    elif args.model_file is not None:
+    #    guesser = make_guesser_builder(args)
+        guesser = make_guesser_builder(args)
+        if args.password_file is None:
+
+            # TESTING_FILE = '/Volumes/Samsung_T5/cs598-gw/passdata_final/testing.txt'
+            # TESTING_FILE = '/Volumes/Samsung_T5/cs598-gw/passdata_final/small_testing_20.txt'
+            TESTING_FILE = '/Volumes/Samsung_T5/cs598-gw/passdata_final/testing.txt'
+            incorrect_predictions = 0 # keeps track of how many passwords next_char could not be predicted (regardless of length of prefix)
+
+            with open(TESTING_FILE) as tf:
+                for test_pwd_count, testing_pwd in enumerate(tf):
+                    print(f"testing pwd # {test_pwd_count+1}")
+                    
+                    pwd = testing_pwd.strip() # to remove \n
+                    # create prefixes
+                    all_prefixes = [(pwd[:i], pwd[i]) for i in range(len(pwd))]
+                    print(f"for pwd: {pwd} -> all_prefixes: {all_prefixes}")
+
+                    """
+                    Start with the first 2 context chars instead of starting with empty or 1 char.
+                    """
+                    all_prefixes.pop(0) # first char (empty)
+                    all_prefixes.pop(0) # second char (1st char). First prefix in all_prefixes now has 2 chars
+                    """
+                    For each prefix, compute the next char.
+                    """
+                    
+                    for prefix, next_char in all_prefixes:
+                        is_prediction_correct = False
+                        context_chars = prefix
+                        try:
+                            # guess the next chars
+                            guesser.ostream = open(args.ofile, 'w') # empty file
+                            guesser.generated = 0
+                            guesser.complete_guessing(context_chars)
+                        except Exception as e:
+                            print(f"Unable to predict pwd: {pwd}")
+                            incorrect_predictions += 1
+                            break
+
+                        # sort the passwords by probability (descending)
+                        subprocess.call(["sort", "-gr", "-k2", "-t", "\t" , args.ofile, "-o", f"sorted_{args.ofile}"])
+
+                        # read the first 10 most likely guesses
+                        K_MOST_LIKELY = 10
+                        with open(f"sorted_{args.ofile}") as myfile:
+                            most_likely_pwds_for_prefix = [next(myfile).strip().split('\t')[0] for x in range(K_MOST_LIKELY)]
+                        print(most_likely_pwds_for_prefix)
+
+                        most_likely_next_chars = set([p[len(context_chars)] for p in most_likely_pwds_for_prefix])
+                        print(f"most_likely_next_chars set: {most_likely_next_chars}")
+                        if next_char in most_likely_next_chars:
+                            # yay! correct prediction, so move to next prefix
+                            is_prediction_correct = True
+                            # break
+                        else:
+                            # next chars don't have correct char, so break
+                            break
+
+                        if is_prediction_correct == True:
+                            # move to next prefix
+                            continue      
+                        else:
+                            print("unable to predict next char. Moving to next password")
+                            incorrect_predictions += 1
+                            break     
+                    print(f"Pwd {testing_pwd} tested. Incorrect predictions: {incorrect_predictions} / {test_pwd_count+1}")                
+            # we've tested all passwords. Return # of incorrect predictions
+            print(f"Testing complete. Incorrect predictions: {incorrect_predictions} / {test_pwd_count+1}")
+                        
         else:
             guesser.calculate_probs()
     else:
