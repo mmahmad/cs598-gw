@@ -276,7 +276,8 @@ def make_guesser_builder(args):
 
 def main(args):
     # TODO: Comment the 2 lines below for live prediction
-    test_markov_model(args)
+    # test_markov_model(args)
+    test_markov_model_prefix(args)
     sys.exit(0)
 
     ###########################
@@ -468,8 +469,8 @@ def test_markov_model_prefix(args):
         if args.password_file is None:
 
 
-            TESTING_FILE = '/Volumes/Samsung_T5/cs598-gw/passdata_final/passwords_prefixed/4.txt'
-            PASSWORDS_TO_TEST= 1000
+            TESTING_FILE = '/projects/eng/shared/CS598GW-FA19/mmahmad3/data/4.txt'
+            PASSWORDS_TO_TEST= 33324
             incorrect_predictions = 0 # keeps track of how many passwords next_char could not be predicted (regardless of length of prefix)
             next_char_prediction_time = defaultdict(list)
 
@@ -494,10 +495,13 @@ def test_markov_model_prefix(args):
                         
                         guesser.complete_guessing(context_chars)
                     except Exception as e:
-                        print(e)
-                        print(f"no predictions for: {pwd}. Prefix: {prefix}")
-                        incorrect_predictions += 1
-                        continue
+                        pass
+                        # print(e)
+                        # print(f"no predictions for: {pwd}. Prefix: {prefix}")
+                        # incorrect_predictions += 1
+                        # print(f"Pwd {testing_pwd} tested. Incorrect predictions: {incorrect_predictions} / {test_pwd_count+1}")
+                        # print("Progress: {0:.0%}".format((test_pwd_count+1)/PASSWORDS_TO_TEST))
+                        # continue
 
 
                     # sort the passwords by probability (descending)
@@ -508,14 +512,21 @@ def test_markov_model_prefix(args):
                     most_likely_10_next_chars_set = set()
                     with open(f"sorted_{args.ofile}") as myfile:
                         for line in myfile:
-                            if len(most_likely_10_next_chars_set) < 10:
+                            if len(most_likely_10_next_chars_set) < K_MOST_LIKELY:
                                 p = line
                                 # get the next char and add to set
                                 most_likely_10_next_chars_set.add(p.split("\t")[0].strip()[len(context_chars)])
 
-                    # check if any one of them is in the ground truth
-                    for c in most_likely_10_next_chars_set:
-                        if c in all_possible_next_chars_ground_truth:
+                    # if no predictions available, incorrect_predictions += 1 then continue to next prefix
+                    if len(most_likely_10_next_chars_set) == 0:
+                        print(f"no predictions for {pwd}. Prefix: {prefix}")
+                        incorrect_predictions += 1
+                        print(f"Pwd {testing_pwd} tested. Incorrect predictions: {incorrect_predictions} / {test_pwd_count+1}")
+                        print("Progress: {0:.0%}".format((test_pwd_count+1)/PASSWORDS_TO_TEST))
+                        continue
+                    else:
+                        # check if any one of them is in the ground truth
+                        if bool(set(all_possible_next_chars_ground_truth) & most_likely_10_next_chars_set):
                             # ground truth has a password with our prefix and the next char we predicted
                             pass
                         else:
